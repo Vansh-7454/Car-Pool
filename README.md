@@ -311,34 +311,6 @@ Access to `/user`, `/driver`, `/admin` is guarded based on the `role` coming fro
 
 ---
 
-## Toast Notifications
-
-A simple toast system is implemented in `ToastContext.jsx` and used across the app to show short messages such as:
-
-- Ride created or cancelled
-- Booking created / accepted / rejected / cancelled
-- Error messages for failed API calls
-
-To trigger a toast in any component:
-
-```jsx
-import { useToast } from '../context/ToastContext.jsx';
-
-function Example() {
-  const { showToast } = useToast();
-
-  return (
-    <button onClick={() => showToast('Hello from toast!', 'success')}>
-      Show toast
-    </button>
-  );
-}
-```
-
-Types supported: `info` (default), `success`, `error`.
-
----
-
 ## Production Build & Deployment
 
 ### Backend
