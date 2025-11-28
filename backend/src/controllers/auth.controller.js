@@ -15,6 +15,34 @@ export async function signup(req, res, next) {
   try {
     const { name, email, password, phone, role, driverDetails } = req.body;
 
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email and password are required' });
+    }
+
+    let normalizedDriverDetails;
+
+    if (role === 'driver') {
+      const files = req.files || {};
+      const licenseFile = files.licenseImage?.[0];
+      const aadhaarFile = files.aadhaarImage?.[0];
+
+      if (!licenseFile || !aadhaarFile) {
+        return res
+          .status(400)
+          .json({ message: 'Driving licence photo and Aadhaar photo are required for driver signup' });
+      }
+
+      const baseDetails = typeof driverDetails === 'object' && driverDetails !== null ? driverDetails : {};
+
+      normalizedDriverDetails = {
+        vehicleModel: req.body.vehicleModel || baseDetails.vehicleModel,
+        vehicleNumber: req.body.vehicleNumber || baseDetails.vehicleNumber,
+        vehicleSeats: Number(req.body.vehicleSeats ?? baseDetails.vehicleSeats ?? 0) || 0,
+        licenseImage: licenseFile.filename,
+        aadhaarImage: aadhaarFile.filename,
+      };
+    }
+
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: 'Email already in use' });
@@ -28,7 +56,7 @@ export async function signup(req, res, next) {
       passwordHash,
       phone,
       role: role || 'passenger',
-      driverDetails: role === 'driver' ? driverDetails : undefined,
+      driverDetails: role === 'driver' ? normalizedDriverDetails : undefined,
     });
 
     const token = generateToken(user);

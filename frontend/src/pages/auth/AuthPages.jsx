@@ -90,7 +90,13 @@ export function LoginPage() {
 export function SignupPage() {
   const [role, setRole] = useState('passenger');
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' });
-  const [driverDetails, setDriverDetails] = useState({ vehicleModel: '', vehicleNumber: '', vehicleSeats: 4 });
+  const [driverDetails, setDriverDetails] = useState({
+    vehicleModel: '',
+    vehicleNumber: '',
+    vehicleSeats: 4,
+    licenseFile: null,
+    aadhaarFile: null,
+  });
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -103,19 +109,40 @@ export function SignupPage() {
     setDriverDetails({ ...driverDetails, [e.target.name]: e.target.value });
   };
 
+  const handleDriverFileChange = (e) => {
+    const { name, files } = e.target;
+    const file = files && files[0] ? files[0] : null;
+    setDriverDetails((prev) => ({ ...prev, [name]: file }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      const payload = { ...form, role };
+      let res;
       if (role === 'driver') {
-        payload.driverDetails = {
-          vehicleModel: driverDetails.vehicleModel,
-          vehicleNumber: driverDetails.vehicleNumber,
-          vehicleSeats: Number(driverDetails.vehicleSeats),
-        };
+        const formData = new FormData();
+        formData.append('name', form.name);
+        formData.append('email', form.email);
+        formData.append('password', form.password);
+        formData.append('phone', form.phone);
+        formData.append('role', role);
+        formData.append('vehicleModel', driverDetails.vehicleModel);
+        formData.append('vehicleNumber', driverDetails.vehicleNumber);
+        formData.append('vehicleSeats', String(driverDetails.vehicleSeats || ''));
+        if (driverDetails.licenseFile) {
+          formData.append('licenseImage', driverDetails.licenseFile);
+        }
+        if (driverDetails.aadhaarFile) {
+          formData.append('aadhaarImage', driverDetails.aadhaarFile);
+        }
+        res = await api.post('/auth/signup', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      } else {
+        const payload = { ...form, role };
+        res = await api.post('/auth/signup', payload);
       }
-      const res = await api.post('/auth/signup', payload);
       login(res.data.token, res.data.user);
       if (role === 'driver') navigate('/driver/dashboard');
       else navigate('/user/dashboard');
@@ -236,6 +263,30 @@ export function SignupPage() {
                   onChange={handleDriverChange}
                   className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm bg-white/80 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-emerald-900">Driving licence photo</label>
+                <input
+                  type="file"
+                  name="licenseFile"
+                  accept="image/*"
+                  onChange={handleDriverFileChange}
+                  required
+                  className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm bg-white/80 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
+                />
+                <p className="text-[10px] text-emerald-900/70">Upload a clear photo of your driving licence.</p>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-emerald-900">Aadhaar photo</label>
+                <input
+                  type="file"
+                  name="aadhaarFile"
+                  accept="image/*"
+                  onChange={handleDriverFileChange}
+                  required
+                  className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm bg-white/80 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
+                />
+                <p className="text-[10px] text-emerald-900/70">Upload a photo of the Aadhaar card for verification.</p>
               </div>
             </fieldset>
           )}
